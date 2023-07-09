@@ -11,6 +11,10 @@
 #define GCSTEPSIZE 1024 // 1kb
 #define GCPAUSE 100
 
+// size for string cache
+#define STRCACHE_M 53
+#define STRCACHE_N 2
+
 typedef TValue* StkId;
 
 struct CallInfo {
@@ -21,6 +25,13 @@ struct CallInfo {
     // next/previous form doubly-linked list for the entire call chain
     struct CallInfo* next;
     struct CallInfo* previous;
+};
+
+// global hash table for short string
+struct stringtable {
+    struct TString** hash;
+    unsigned int nuse;
+    unsigned int size;
 };
 
 typedef struct lua_State {
@@ -53,6 +64,12 @@ typedef struct global_State {
     void* ud;
     lua_CFunction panic;
 
+    struct stringtable strt;
+    TString* strcache[STRCACHE_M][STRCACHE_N];
+    unsigned int seed; // hash seed, just for string hash
+    TString* memerrmsg;
+    TValue l_registry;
+
     // gc fields
     lu_byte gcstate;
     lu_byte currentwhite;
@@ -60,6 +77,7 @@ typedef struct global_State {
     struct GCObject** sweepgc;
     struct GCObject* gray;
     struct GCObject* grayagain;
+    struct GCObject* fixgc;  // objects cannot collect by gc
     lu_mem totalbytes;
     l_mem GCdebt;  // GCdebt will be negative
     lu_mem GCmemtrav;  // per gc step traverse memory bytes
@@ -70,6 +88,7 @@ typedef struct global_State {
 union GCUnion {
     struct GCObject gc;
     lua_State th;
+    TString ts;
 };
 
 struct lua_State* lua_newstate(lua_Alloc alloc, void* ud);

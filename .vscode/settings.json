@@ -1,0 +1,7 @@
+{
+  "files.associations": {
+    "luastring.h": "c",
+    "limits.h": "c",
+    "random": "c"
+  }
+}

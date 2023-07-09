@@ -47,9 +47,23 @@ typedef struct lua_TValue {
     int tt_;
 } TValue;
 
+#define MAXSHORTSTR 40
+
 typedef struct TString {
-    int test_field1;
-    int test_field2;
+    CommonHeader;
+    unsigned int hash;
+
+    // if TString is long string type, then extra=1 means it has been hash
+    // extra=0 means it has not hash yet.
+    // if TString is short string type, then extra=0 means it can be reclaim by gc
+    // or if extra is not 0, gc can not reclaim it.
+    unsigned short extra;
+    unsigned short shrlen;
+    union {
+        struct TString* hnext;  // hash linked-list next for short string in hash table
+        size_t lnglen;  // length for long string
+    } u;
+    char data[0];
 } TString;
 
 #endif  // LUA_OBJECT_H_

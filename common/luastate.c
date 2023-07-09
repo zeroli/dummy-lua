@@ -1,5 +1,10 @@
 #include "luastate.h"
 #include "luamem.h"
+#include "luastring.h"
+#include "../vm/luagc.h"
+
+#include <string.h>
+#include <time.h>
 
 typedef struct LX {
     lu_byte extra_[LUA_EXTRASPACE];
@@ -32,6 +37,22 @@ static void stack_init(struct lua_State* L) {
     L->ci->top = L->stack + LUA_MINSTACK;
 }
 
+#define addbuff(b, t, p) \
+    { memcpy(b, t, sizeof(t)); p += sizeof(t); }
+
+static unsigned int makeseed(struct lua_State* L) {
+    char buff[4 * sizeof(size_t)];
+    unsigned int h = time(NULL);
+    int p = 0;
+
+    addbuff(buff, L, p);
+    addbuff(buff, &h, p);
+    //addbuff(buff, luaO_nilobject, p);
+    addbuff(buff, &lua_newstate, p);
+
+    return luaS_hash(L, buff, p, h);
+}
+
 struct lua_State* lua_newstate(lua_Alloc alloc, void* ud) {
     struct global_State* g;
     struct lua_State* L;
@@ -51,7 +72,28 @@ struct lua_State* lua_newstate(lua_Alloc alloc, void* ud) {
     G(L) = g;
     g->mainthread = L;
 
+    // gc init
+    g->gcstate = GCSpause;
+    g->currentwhite = bitmask(WHITE0BIT);
+    g->totalbytes = sizeof(LG);
+    g->allgc = NULL;
+    g->fixgc = NULL;
+    g->sweepgc = NULL;
+    g->gray = NULL;
+    g->grayagain = NULL;
+    g->GCdebt = 0;
+    g->GCmemtrav = 0;
+    g->GCestimate = 0;
+    g->GCstepmul = LUA_GCSTEPMUL;
+    g->seed = makeseed(L);
+
+    L->marked = luaC_white(g);
+    L->gclist = NULL;
+
     stack_init(L);
+
+    luaS_init(L);
+
     return L;
 }
 
