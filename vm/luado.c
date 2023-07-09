@@ -127,8 +127,81 @@ int luaD_precall(struct lua_State* L, StkId func, int nresult) {
         default:
         break;
     }
+    return 0;
 }
 
+int luaD_poscall(struct lua_State* L, StkId first_result, int nresult) {
+    StkId func = L->ci->func;
+    int nwant = L->ci->nresult;
+
+    switch (nwant) {
+        case 0: {
+            L->top = L->ci->func;
+        } break;
+        case 1: {
+            if (nresult == 0) {
+                first_result->value_.p = NULL;
+                first_result->tt_ = LUA_TNIL;
+            }
+            setobj(func, first_result);
+            first_result->value_.p = NULL;
+            first_result->tt_ = LUA_TNIL;
+
+            L->top = func + nwant;
+        } break;
+        case LUA_MULRET: {
+            int nres = cast(int, L->top - first_result);
+            int i;
+            for (i = 0; i < nresult; i++) {
+                StkId current = first_result + i;
+                setobj(func + i, current);
+                current->value_.p = NULL;
+                current->tt_ = LUA_TNIL;
+            }
+            L->top = func + nres;
+        } break;
+        default: {
+            if (nwant > nresult) {
+                int i;
+                for (i = 0; i < nwant; i++) {
+                    if (i < nresult) {
+                        StkId current = first_result + i;
+                        setobj(func + i, current);
+                        current->value_.p = NULL;
+                        current->tt_ = LUA_TNIL;
+                    } else {
+                        StkId stack = func + i;
+                        stack->tt_ = LUA_TNIL;
+                    }
+                }
+                L->top = func + nwant;
+            } else {
+                int i;
+                for (i = 0; i < nresult; i++) {
+                    if (i < nwant) {
+                        StkId current = first_result + i;
+                        setobj(func + i, current);
+                        current->value_.p = NULL;
+                        current->tt_ = LUA_TNIL;
+                    } else {
+                        StkId stack = func + i;
+                        stack->value_.p = NULL;
+                        stack->tt_ = LUA_TNIL;
+                    }
+                }
+                L->top = func + nresult;
+            }
+        } break;
+    }
+
+    struct CallInfo* ci = L->ci;
+    L->ci = ci->previous;
+    L->ci->next = NULL;
+
+    struct global_State* g = G(L);
+    (*g->frealloc)(g->ud, ci, sizeof(struct CallInfo), 0);
+    return LUA_OK;
+}
 
 int luaD_call(struct lua_State* L, StkId func, int nresult) {
     if (++L->ncalls > LUA_MAXCALLS) {
@@ -143,5 +216,43 @@ int luaD_call(struct lua_State* L, StkId func, int nresult) {
 
 static void reset_unuse_stack(struct lua_State* L, ptrdiff_t old_top) {
     struct global_State* g = G(L);
-    StkId
+    StkId top = restorestack(L, old_top);
+    for (; top < L->top; top++) {
+        if (top->value_.p) {
+            (*g->frealloc)(g->ud, top->value_.p, sizeof(top->value_.p), 0);
+            top->value_.p = NULL;
+        }
+        top->tt_ = LUA_TNIL;
+    }
+}
+
+int luaD_pcall(struct lua_State* L, Pfunc f, void* ud, ptrdiff_t oldtop, ptrdiff_t ef) {
+    int status;
+    struct CallInfo* old_ci = L->ci;
+    ptrdiff_t old_errorfunc = L->errorfunc;
+
+    status = luaD_rawrunprotected(L, f, ud);
+    if (status != LUA_OK) {
+        struct global_State* g = G(L);
+        struct CallInfo* free_ci = L->ci;
+        while (free_ci) {
+            if (free_ci == old_ci) {
+                free_ci = free_ci->next;
+                continue;
+            }
+            struct CallInfo* previous = free_ci->previous;
+            previous->next = NULL;
+            struct CallInfo* next = free_ci->next;
+            (*g->frealloc)(g->ud, free_ci, sizeof(struct CallInfo), 0);
+            free_ci = next;
+        }
+
+        reset_unuse_stack(L, oldtop);
+        L->ci = old_ci;
+        L->top = restorestack(L, oldtop);
+        seterrobj(L, status);
+    }
+
+    L->errorfunc = old_errorfunc;
+    return status;
 }

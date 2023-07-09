@@ -12,7 +12,7 @@ void luaL_pushlightuserdata(struct lua_State* L, void* userdata);
 void luaL_pushnil(struct lua_State* L);
 void luaL_pushcfunction(struct lua_State* L, lua_CFunction f);
 void luaL_pushboolean(struct lua_State* L, bool boolean);
-void luaL_pcall(struct lua_State* L, int narg, int nresult);
+int luaL_pcall(struct lua_State* L, int narg, int nresult);
 
 bool luaL_checkinteger(struct lua_State* L, int idx);
 lua_Integer luaL_tointeger(struct lua_State* L, int idx);

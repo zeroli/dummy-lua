@@ -58,7 +58,7 @@ static int f_call(lua_State* L, void* ud) {
     return LUA_OK;
 }
 
-int lua_pcall(struct lua_State* L, int narg, int nresult) {
+int luaL_pcall(struct lua_State* L, int narg, int nresult) {
     int status = LUA_OK;
     CallS c;
     c.func = L->top - (narg + 1);
@@ -70,7 +70,7 @@ int lua_pcall(struct lua_State* L, int narg, int nresult) {
 
 bool luaL_checkinteger(struct lua_State* L, int idx) {
     int isnum = 0;
-    lua_tointeger(L, idx, &isnum);
+    lua_tointegerx(L, idx, &isnum);
     if (isnum) {
         return true;
     } else {
@@ -86,7 +86,7 @@ lua_Integer luaL_tointeger(struct lua_State* L, int idx) {
 
 lua_Number luaL_tonumber(struct lua_State* L, int idx) {
     int isnum = 0;
-    lua_Number ret = lua_tonumber(L, idx, &isnum);
+    lua_Number ret = lua_tonumberx(L, idx, &isnum);
     return ret;
 }
 

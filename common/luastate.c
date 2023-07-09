@@ -54,7 +54,7 @@ struct lua_State* lua_newstate(lua_Alloc alloc, void* ud) {
     return L;
 }
 
-#define fromstate(L) (cast(LX*, cast(lu_byte*, (L)) - offsetof(LX, L)))
+#define fromstate(L) (cast(LX*, cast(lu_byte*, (L)) - offsetof(LX, l)))
 
 static void free_stack(struct lua_State* L) {
     global_State* g = G(L);
@@ -157,7 +157,7 @@ struct TValue* index2addr(struct lua_State* L, int idx) {
     }
 }
 
-lua_Integer lua_tointeger(struct lua_State* L, int idx, int* isnum) {
+lua_Integer lua_tointegerx(struct lua_State* L, int idx, int* isnum) {
     lua_Integer ret = 0;
     TValue* addr = index2addr(L, idx);
     if (addr->tt_ == LUA_NUMINT) {

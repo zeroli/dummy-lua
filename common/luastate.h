@@ -69,7 +69,7 @@ void lua_pushlightuserdata(struct lua_State* L, void* p);
 
 // stack => client c
 lua_Integer lua_tointegerx(struct lua_State* L, int idx, int* isnum);
-lua_Number lua_tonumber(struct lua_State* L, int idx, int* isnum);
+lua_Number lua_tonumberx(struct lua_State* L, int idx, int* isnum);
 bool lua_toboolean(struct lua_State* L, int idx);
 int lua_isnil(struct lua_State* L, int idx);
 
