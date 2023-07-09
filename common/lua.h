@@ -17,6 +17,9 @@
 #define LUA_NUMBER float
 #endif
 
+#define lua_assert(c) ((void)0)
+#define check_exp(c, e) (lua_assert(c), e)
+
 #define LUA_OK 0
 #define LUA_ERRERR 1
 #define LUA_ERRMEM 2
@@ -48,5 +51,11 @@
 
 // error tips
 #define LUA_ERROR(L, s) printf("LUA ERROR: %s", s);
+
+typedef size_t lu_mem;
+typedef ptrdiff_t l_mem;
+
+#define MAX_LUMEM ((lu_mem)(~(lu_mem)0))
+#define MAX_LMEM (MAX_LUMEM >> 1)
 
 #endif  // LUA_H_

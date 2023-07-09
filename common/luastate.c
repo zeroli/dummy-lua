@@ -47,6 +47,7 @@ struct lua_State* lua_newstate(lua_Alloc alloc, void* ud) {
     g->panic = NULL;
 
     L = &lg->l.l;
+    L->nci = 0;
     G(L) = g;
     g->mainthread = L;
 
